@@ -1361,6 +1361,7 @@ callback (gpointer pData)
     case LOK_CALLBACK_CONTEXT_CHANGED:
         break; // TODO
     default:
+        g_error("Unknown callback type: %d", pCallback->m_nType);
         g_assert(false);
         break;
     }

@@ -77,8 +77,6 @@ public:
     void testTdf107013();
     void testTdf107018();
     void testTdf107089();
-    void testTdf99680();
-    void testTdf99680_2();
     void testTdf108963();
 #if HAVE_MORE_FONTS
     /// Test writing ToUnicode CMAP for LTR ligatures.
@@ -115,8 +113,6 @@ public:
     CPPUNIT_TEST(testTdf107013);
     CPPUNIT_TEST(testTdf107018);
     CPPUNIT_TEST(testTdf107089);
-    CPPUNIT_TEST(testTdf99680);
-    CPPUNIT_TEST(testTdf99680_2);
     CPPUNIT_TEST(testTdf108963);
 #if HAVE_MORE_FONTS
     CPPUNIT_TEST(testTdf115117_1);
@@ -688,84 +684,6 @@ void PdfExportTest::testTdf107089()
     auto it = std::search(pStart, pEnd, aHello.getStr(), aHello.getStr() + aHello.getLength());
     // This failed, 'Hello' was part only a mixed compressed/uncompressed stream, i.e. garbage.
     CPPUNIT_ASSERT(it != pEnd);
-}
-
-void PdfExportTest::testTdf99680()
-{
-    vcl::filter::PDFDocument aDocument;
-    load("tdf99680.odt", aDocument);
-
-    // The document has one page.
-    std::vector<vcl::filter::PDFObjectElement*> aPages = aDocument.GetPages();
-    CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(1), aPages.size());
-
-    // The page 1 has a stream.
-    vcl::filter::PDFObjectElement* pContents = aPages[0]->LookupObject("Contents");
-    CPPUNIT_ASSERT(pContents);
-    vcl::filter::PDFStreamElement* pStream = pContents->GetStream();
-    CPPUNIT_ASSERT(pStream);
-    SvMemoryStream& rObjectStream = pStream->GetMemory();
-
-    // Uncompress it.
-    SvMemoryStream aUncompressed;
-    ZCodec aZCodec;
-    aZCodec.BeginCompression();
-    rObjectStream.Seek(0);
-    aZCodec.Decompress(rObjectStream, aUncompressed);
-    CPPUNIT_ASSERT(aZCodec.EndCompression());
-
-    // Make sure there are no empty clipping regions.
-    OString aEmptyRegion("0 0 m h W* n");
-    auto pStart = static_cast<const char*>(aUncompressed.GetData());
-    const char* pEnd = pStart + aUncompressed.GetSize();
-    auto it = std::search(pStart, pEnd, aEmptyRegion.getStr(), aEmptyRegion.getStr() + aEmptyRegion.getLength());
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Empty clipping region detected!", it, pEnd);
-
-    // Count save graphic state (q) and restore (Q) operators
-    // and ensure their amount is equal
-    size_t nSaveCount = std::count(pStart, pEnd, 'q');
-    size_t nRestoreCount = std::count(pStart, pEnd, 'Q');
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Save/restore graphic state operators count mismatch!", nSaveCount, nRestoreCount);
-}
-
-void PdfExportTest::testTdf99680_2()
-{
-    vcl::filter::PDFDocument aDocument;
-    load("tdf99680-2.odt", aDocument);
-
-    // For each document page
-    std::vector<vcl::filter::PDFObjectElement*> aPages = aDocument.GetPages();
-    CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(3), aPages.size());
-    for (size_t nPageNr = 0; nPageNr < aPages.size(); nPageNr++)
-    {
-        // Get page contents and stream.
-        vcl::filter::PDFObjectElement* pContents = aPages[nPageNr]->LookupObject("Contents");
-        CPPUNIT_ASSERT(pContents);
-        vcl::filter::PDFStreamElement* pStream = pContents->GetStream();
-        CPPUNIT_ASSERT(pStream);
-        SvMemoryStream& rObjectStream = pStream->GetMemory();
-
-        // Uncompress the stream.
-        SvMemoryStream aUncompressed;
-        ZCodec aZCodec;
-        aZCodec.BeginCompression();
-        rObjectStream.Seek(0);
-        aZCodec.Decompress(rObjectStream, aUncompressed);
-        CPPUNIT_ASSERT(aZCodec.EndCompression());
-
-        // Make sure there are no empty clipping regions.
-        OString aEmptyRegion("0 0 m h W* n");
-        auto pStart = static_cast<const char*>(aUncompressed.GetData());
-        const char* pEnd = pStart + aUncompressed.GetSize();
-        auto it = std::search(pStart, pEnd, aEmptyRegion.getStr(), aEmptyRegion.getStr() + aEmptyRegion.getLength());
-        CPPUNIT_ASSERT_EQUAL_MESSAGE("Empty clipping region detected!", it, pEnd);
-
-        // Count save graphic state (q) and restore (Q) operators
-        // and ensure their amount is equal
-        size_t nSaveCount = std::count(pStart, pEnd, 'q');
-        size_t nRestoreCount = std::count(pStart, pEnd, 'Q');
-        CPPUNIT_ASSERT_EQUAL_MESSAGE("Save/restore graphic state operators count mismatch!", nSaveCount, nRestoreCount);
-    }
 }
 
 void PdfExportTest::testTdf108963()

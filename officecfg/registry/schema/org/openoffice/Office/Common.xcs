@@ -2022,7 +2022,7 @@
             <desc>Specifies that the names of the selectable fonts will be
             displayed with this font.</desc>
           </info>
-          <value>true</value>
+          <value>false</value>
         </prop>
       </group>
       <group oor:name="SourceViewFont">
